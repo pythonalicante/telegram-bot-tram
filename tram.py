@@ -179,7 +179,7 @@ def paradas(bot, update):
 ######################################
 def main():
     #Cambiar token***********************************************************************
-    updater = telegram.ext.Updater('414632572:AAEp6EeRtNtbJbGziuUaukBktlHT-br1zyI')
+    updater = telegram.ext.Updater('TOKEN')
     dp = updater.dispatcher
 
     dp.add_handler(telegram.ext.CommandHandler("start",start))
