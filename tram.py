@@ -1,10 +1,11 @@
-###########################################################################################################
+	###########################################################################################################
 #  TramBot, no necesitas más, ya nunca volveras a llegar tarde, no volveras a perder ese tram. 
 #   `--> (TramBot SA no se responsabiliza de gente que no sepa leer, gracias)
 #
 #    Desing By TitoVerdejus and SecuNabo
 #
-# **Escribir tu TOKEN, debes tener el archivo paradas.json en el mismo directorio que este bot para que funcione
+# **Escribir tu TOKEN, debes tener el archivo paradas.json en el mismo directorio que este bot para que funcione//
+#Ultima actualizacion por verdejus 23:50-18/10/2017
 ###########################################################################################################
 #⌚️
 #📌
@@ -51,8 +52,8 @@ def timestoday(bot,update,args):
         leer = json.loads(open('./paradas.json').read())
 
         #Valida si existe el argumento 1 (origen) y el argumento 2 (destino)
-        numid = leer.get(args[0], 'Nothing')
-        numid2 = leer.get(args[1], 'Nothing')
+        numid = leer.get(str.lower(args[0]), 'Nothing')
+        numid2 = leer.get(str.lower(args[1]), 'Nothing')
         
         #Compruebo que el origen y el destino sean distintos
         if(args[0]==args[1]):
@@ -100,7 +101,7 @@ def timestoday(bot,update,args):
                         numero1=hora[1]
                         total=(total+'\n'+'⌚️'+numero0+numero1+'\n'+'📌'+hora+' ')
 
-                update.message.reply_text('Salidas desde '+args[0]+' a '+args[1]+ ' :'+total)
+                update.message.reply_text('Salidas desde '+str.lower(args[0])+' a '+str.lower(args[1])+ ' :'+total)
 
     else:
         update.message.reply_text("Error en los parametros.\nUso /times Origen Destino")
@@ -119,8 +120,8 @@ def timesintervalo(bot,update,args):
         leer = json.loads(open('./paradas.json').read())
         
         #Valida si existe el argumento 1 (origen) y el argumento 2 (destino)
-        numid = leer.get(args[0], 'Nothing')
-        numid2 = leer.get(args[1], 'Nothing')
+        numid = leer.get(str.lower(args[0]), 'Nothing')
+        numid2 = leer.get(str.lower(args[1]), 'Nothing')
 
         #Compruebo que el origen y el destino sean distintos
         if(args[0]==args[1]):
@@ -134,17 +135,20 @@ def timesintervalo(bot,update,args):
                 if((numid in "Nothing") or (numid2 in "Nothing")):
                     update.message.reply_text("Error en las paradas.\nEs posible que haya errores en los nombres de las paradas")
                 else:
+                    h1=args[2][0]*1000+args[2][1]*100+args[2][3]*10+args[2][4]
+                    h2=args[3][0]*1000+args[3][1]*100+args[3][3]*10+args[3][4]
+                    if(h1<h2):
 			
-                    today = time.strftime("%x")
+                        today = time.strftime("%x")
                 
-                    #Hora inicio y final
-                    hinicio = args[2]
-                    hfinal = args[3]
+                        #Hora inicio y final
+                        hinicio = args[2]
+                        hfinal = args[3]
 
 
                 
-                    #Construyo y realizo la peticion con los datos correspondientes y los intervalos
-                    payload = {
+                        #Construyo y realizo la peticion con los datos correspondientes y los intervalos
+                        payload = {
 				'origen': numid,
 				'aceptar': '0',
 				'key': '0',
@@ -153,35 +157,39 @@ def timesintervalo(bot,update,args):
 				'hini': hinicio,
 				'hfin': hfinal,
 				'calcular': '1'
-                    }
-                    r = requests.post("http://www.tramalicante.es/horarios.php", data=payload)
+                        }
+                        r = requests.post("http://www.tramalicante.es/horarios.php", data=payload)
 
-                    #Scrapeo cada valor de la tabla de horarios
-                    cadatd = re.findall("<td>(\d+:\d+)</td>", r.text)
+                        #Scrapeo cada valor de la tabla de horarios
+                        cadatd = re.findall("<td>(\d+:\d+)</td>", r.text)
 
-                    total=''
-                    numero1='-1'
-                    numero0='-1'
-                    #Mando el horario de la forma: en una linea la hora y en la siguiente todas las
-                    #veces que sale en esa hora, y asi con todas las horas.
+                        total=''
+                        numero1='-1'
+                        numero0='-1'
+                        #Mando el horario de la forma: en una linea la hora y en la siguiente todas las
+                        #veces que sale en esa hora, y asi con todas las horas.
                 
-                    for hora in cadatd:
-                        #imprime horas por grupos de hora
-                        if(hora[0]==numero0 and hora[1]==numero1):
+                        for hora in cadatd:
+                            #imprime horas por grupos de hora
+                            if(hora[0]==numero0 and hora[1]==numero1):
                        
-                            total=(total+hora+' ')
-                        #detecta cuando tiene que pasar a la siguiente hora
-                        else:
-                            #Detectar transbordo
-                            if(numero0*10+numero1 > hora[0]*10+hora[1]):
-                                total=total+'\n\nTRANSBORDOOOR\n'
+                                total=(total+hora+' ')
+                            #detecta cuando tiene que pasar a la siguiente hora
+                            else:
+                                #Detectar transbordo
+                                if(numero0*10+numero1 > hora[0]*10+hora[1]):
+                                    total=total+'\n\nTRANSBORDOOOR\n'
                             
-                            numero0=hora[0]
-                            numero1=hora[1]
-                            total=(total+'\n'+'⌚️'+numero0+numero1+'\n'+'📌'+hora+' ')
-
-                    update.message.reply_text('Salidas desde '+args[0]+' a '+args[1]+ 'de '+hinicio+ ' a '+hfinal+ ':'+total)
-           
+                                numero0=hora[0]
+                                numero1=hora[1]
+                                total=(total+'\n'+'⌚️'+numero0+numero1+'\n'+'📌'+hora+' ')
+                        
+                        if(total==''):
+                            update.message.reply_text('Lo siento, no sale ningun tram en el intervalo horario indicado.')
+                        else:
+                            update.message.reply_text('Salidas desde '+str.lower(args[0])+' a '+str.lower(args[1])+ ' de '+hinicio+ ' a '+hfinal+ ':'+total)
+                    else:
+                        update.message.reply_text('Error.\nLa hora de inicio debe ser menor que la hora de fin.')
             else:
                 update.message.reply_text('El intervalo de horas es incorrecto, debe cumplir este formato: XX:XX')
     else:
