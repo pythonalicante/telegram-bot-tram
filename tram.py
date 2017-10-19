@@ -1,10 +1,10 @@
-	###########################################################################################################
+###########################################################################################################
 #  TramBot, no necesitas más, ya nunca volveras a llegar tarde, no volveras a perder ese tram. 
-#   `--> (TramBot SA no se responsabiliza de gente que no sepa leer, gracias)
+# 
 #
-#    Desing By TitoVerdejus and SecuNabo
+#    Desing By DVerdejo and Secury
 #
-# **Escribir tu TOKEN, debes tener el archivo paradas.json en el mismo directorio que este bot para que funcione//
+# **Escribir tu TOKEN y debes tener el archivo paradas.json en el mismo directorio que este bot para que funcione//
 #Ultima actualizacion por verdejus 23:50-18/10/2017
 ###########################################################################################################
 #⌚️
