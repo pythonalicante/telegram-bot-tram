@@ -21,7 +21,7 @@ try:
     with open('./paradas.json') as stops:
         leer = json.load(stops)
 except Exception:
-    pass
+    exit()
 
 
 #
