@@ -2,7 +2,7 @@
 #  TramBot, no necesitas más, ya nunca volveras a llegar tarde, no volveras a perder ese tram. 
 # 
 #
-#    Desing By DVerdejo and Secury
+#    Desing By @Verdej0 and @Secury
 #
 # **Escribir tu TOKEN y debes tener el archivo paradas.json en el mismo directorio que este bot para que funcione//
 #Ultima actualizacion por verdejus 23:50-18/10/2017
