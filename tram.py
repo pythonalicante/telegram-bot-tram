@@ -15,6 +15,15 @@ import re
 import time
 import json
 
+try:
+    leer = None
+    # Cargo el json de las paradas y sus respectivos codigos
+    with open('./paradas.json') as stops:
+        leer = json.load(stops)
+except Exception:
+    pass
+
+
 #
 # Funcion Inicial para el comando /start
 #
@@ -49,77 +58,77 @@ def help(bot, update):
 def timestoday(bot, update, args):
 
     # Validacion de argumentos, solo recibe origen y destino
-    if (len(args) == 2):
-
+    if len(args) != 2:
+        update.message.reply_text(
+            "Error en los parametros.\nUso /times Origen Destino")
+    else:
         # Obtengo la fecha actual
         today = time.strftime("%x")
 
-        leer = None
-        # Cargo el json de las paradas y sus respectivos codigos
-        with open('./paradas.json') as stops:
-            leer = json.load(stops)
-
-        # Valida si existe el argumento 1 (origen) y el argumento 2 (destino)
-        numid = leer.get(str.lower(args[0]), 'Nothing')
-        numid2 = leer.get(str.lower(args[1]), 'Nothing')
+        # Convierto las paradas introducidas por el usuario a minusculas
+        first_stop = args[0].lower()
+        second_stop = args[1].lower()
 
         # Compruebo que el origen y el destino sean distintos
-        if(args[0] == args[1]):
+        if args[0] == args[1]:
             update.message.reply_text('Error.\nEl origen y destino coinciden!')
+
+        # Valida si existe el argumento 1 (origen) y el argumento 2 (destino)
+        # en las paradas almacenadas
+        if leer:
+            numid = leer.get(first_stop, 'Nothing')
+            numid2 = leer.get(second_stop, 'Nothing')
         else:
+            update.message.reply_text(
+                'Error.\nNo se han podido cargar las paradas')
 
-            # Valida si ha encontrado la codificacion de la parada de origen y
-            # destino
-            if((numid in "Nothing") or (numid2 in "Nothing")):
-                update.message.reply_text(
-                    "Error en las paradas.\nEs posible que haya errores en los nombres de las paradas")
+        # Valida si ha encontrado la codificacion de la parada de origen y
+        # destino
+        if numid == "Nothing" or numid2 == "Nothing":
+            update.message.reply_text(
+                "Error en las paradas.\nEs posible que haya errores en los nombres de las paradas")
+
+        # Construyo y realizo la peticion con los datos
+        # correspondientes
+        payload = {
+            'origen': numid,
+            'aceptar': '0',
+            'key': '0',
+            'destino': numid2,
+            'fecha': today,
+            'hini': '00:00',
+            'hfin': '23:59',
+            'calcular': '1'
+        }
+        r = requests.post(
+            "http://www.tramalicante.es/horarios.php", data=payload)
+
+        # Scrapeo cada valor de la tabla de horarios
+        cadatd = re.findall("<td>(\d+:\d+)</td>", r.text)
+
+        total = ''
+        numero1 = '-1'
+        numero0 = '-1'
+        # Mando el horario de la forma: en una linea la hora y en la siguiente todas las
+        # veces que sale en esa hora, y asi con todas las horas.
+        for hora in cadatd:
+            # imprime horas por grupos de hora
+            if(hora[0] == numero0 and hora[1] == numero1):
+
+                total = (total + hora + ' ')
+            # detecta cuando tiene que pasar a la siguiente hora
             else:
+                # Detectar transbordo
+                if(numero0 * 10 + numero1 > hora[0] * 10 + hora[1]):
+                    total = total + '\n\nTRANSBORDOOOR\n'
 
-                # Construyo y realizo la peticion con los datos
-                # correspondientes
-                payload = {
-                    'origen': numid,
-                    'aceptar': '0',
-                    'key': '0',
-                    'destino': numid2,
-                    'fecha': today,
-                    'hini': '00:00',
-                    'hfin': '23:59',
-                    'calcular': '1'
-                }
-                r = requests.post(
-                    "http://www.tramalicante.es/horarios.php", data=payload)
+                numero0 = hora[0]
+                numero1 = hora[1]
+                total = (total + '\n' + '⌚️' + numero0 +
+                         numero1 + '\n' + '📌' + hora + ' ')
 
-                # Scrapeo cada valor de la tabla de horarios
-                cadatd = re.findall("<td>(\d+:\d+)</td>", r.text)
-
-                total = ''
-                numero1 = '-1'
-                numero0 = '-1'
-                # Mando el horario de la forma: en una linea la hora y en la siguiente todas las
-                # veces que sale en esa hora, y asi con todas las horas.
-                for hora in cadatd:
-                    # imprime horas por grupos de hora
-                    if(hora[0] == numero0 and hora[1] == numero1):
-
-                        total = (total + hora + ' ')
-                    # detecta cuando tiene que pasar a la siguiente hora
-                    else:
-                        # Detectar transbordo
-                        if(numero0 * 10 + numero1 > hora[0] * 10 + hora[1]):
-                            total = total + '\n\nTRANSBORDOOOR\n'
-
-                        numero0 = hora[0]
-                        numero1 = hora[1]
-                        total = (total + '\n' + '⌚️' + numero0 +
-                                 numero1 + '\n' + '📌' + hora + ' ')
-
-                update.message.reply_text(
-                    'Salidas desde ' + str.lower(args[0]) + ' a ' + str.lower(args[1]) + ' :' + total)
-
-    else:
         update.message.reply_text(
-            "Error en los parametros.\nUso /times Origen Destino")
+            'Salidas desde ' + str.lower(args[0]) + ' a ' + str.lower(args[1]) + ' :' + total)
 
 # Funcion TimesIntervalo: devuelve el horario de salidas de una estacion origen a una destino en un intervalo de horas
 # establecido por el usuario (como argumento 2 y 3)
@@ -233,12 +242,12 @@ def timesintervalo(bot, update, args):
 
 def paradas(bot, update):
 
-    # cargo el json de las paradas
-    leer = json.loads(open('./paradas.json').read())
+    if not leer:
+        update.message.reply_text(
+            'Error.\nNo se han podido cargar las paradas')
 
     total = '📌'
     for parada in leer:
-
         total = (total + parada + '\n' + '📌')
     temp = len(total)
     total = total[:temp - 1]
