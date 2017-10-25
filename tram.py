@@ -1,15 +1,22 @@
 ###########################################################################################################
 #  TramBot, no necesitas más, ya nunca volveras a llegar tarde, no volveras a perder ese tram. 
-# 
+#   
 #
-#    Desing By @Verdej0 and @Secury
+#    Desing By @verdej0 and @secu_X11 
 #
-# **Escribir tu TOKEN y debes tener el archivo paradas.json en el mismo directorio que este bot para que funcione//
-#Ultima actualizacion por verdejus 23:50-18/10/2017
+# **Escribir tu TOKEN, debes tener el archivo paradas.json en el mismo directorio que este bot para que funcione
+#Ultima actualizacion por Verdejo 25/10
 ###########################################################################################################
 #⌚️
 #📌
 import telegram.ext, requests, re, time, json
+
+try:
+    leer=json.loads(open('./paradas.json').read())
+    
+except Exception:
+    print('Error al leer paradas.json')
+    exit()
 
 #
 # Funcion Inicial para el comando /start 
@@ -22,7 +29,6 @@ def start(bot,update):
     
     update.message.reply_text('Hola '+ name +' soy TramBot escribe /help para obtener ayuda.')
 
-
 #
 # Funcion de Ayuda para el comando /help
 #
@@ -32,7 +38,35 @@ def help(bot,update):
     update.message.reply_text('Ayuda:\n/start - Saludo del bot.\n/paradas - Paradas disponibles.\n/times Origen Destino - Horarios de hoy.\n/timesto Origen Destino HInicio HFin - Horarios en un intervalo de tiempo, formato de hora XX:XX.\n/help - Muestra la ayuda.')
 
 
+#Scrapea del html si hay un transbordo
+def unTransbordo(test_str):
+    regex = b"Para efectuar este trayecto debe efectuar\s+<strong>transbordo<\/strong>(.*?)<img alt='(\d+)' title='\d+' src='.*?' \/>(.*?)<img alt='(\d+)' title='\d+' src='.*?' \/>"
+    matches=re.finditer(regex,test_str.content)
+    total=''
+    for matchNum, match in enumerate(matches):
+        matchNum = matchNum + 1
 
+        for groupNum in range(0, len(match.groups())):
+            groupNum = groupNum + 1
+        
+            total+=match.group(groupNum).decode('utf-8')+ ' '
+   
+    return total
+
+#Funcion auxiliar para determinar el segundo transbordo
+def dosTransbordos(test_str):
+    total=""
+    regex = r"<li>Para efectuar este trayecto debe efectuar <strong>transbordo</strong> (.*?) <img alt='(\d+)' title='\d+' src='.*?' /> (.*?) <img alt='(\d+)' title='\d+' src='.*?' /> (.*?) <img alt='(\d+)' title='\d' src='.*?' /> (.*?) <img alt='(\d+)' title='\d+' src='.*?' /></li>"
+    matches = re.search(regex, test_str.text, re.UNICODE)
+    total=''
+    #5, 6, 7, 8, son los grupos donde esta la info que me interesa  
+    total+=matches.group(5)+' '
+    total+=matches.group(6)+' '
+    total+=matches.group(7)+' '
+    total+=matches.group(8)
+    
+    return total
+            
 
 #
 # Funcion TimesToday: devuelve el horario completo de salidas de una parada de tram a 
@@ -47,9 +81,6 @@ def timestoday(bot,update,args):
 
         #Obtengo la fecha actual
         today = time.strftime("%x")
-
-        #Cargo el json de las paradas y sus respectivos codigos
-        leer = json.loads(open('./paradas.json').read())
 
         #Valida si existe el argumento 1 (origen) y el argumento 2 (destino)
         numid = leer.get(str.lower(args[0]), 'Nothing')
@@ -77,13 +108,15 @@ def timestoday(bot,update,args):
 				'calcular': '1'
                 }
                 r = requests.post("http://www.tramalicante.es/horarios.php", data=payload)
-
+                
+                
                 #Scrapeo cada valor de la tabla de horarios
                 cadatd = re.findall("<td>(\d+:\d+)</td>", r.text)
 
                 total=''
                 numero1='-1'
                 numero0='-1'
+                trans=0
                 #Mando el horario de la forma: en una linea la hora y en la siguiente todas las
                 #veces que sale en esa hora, y asi con todas las horas.
                 for hora in cadatd:
@@ -95,8 +128,13 @@ def timestoday(bot,update,args):
                     else:
                         #Detectar transbordo
                         if(numero0*10+numero1 > hora[0]*10+hora[1]):
-                            total=total+'\n\nTRANSBORDOOOR\n'
-                        
+                            trans+=1
+                            if(trans==1):
+                                trans1=unTransbordo(r)
+                                total+='\n\n Transbordo'+trans1+'\n'
+                            if(trans==2):
+                                trans2=dosTransbordos(r)
+                                total+='\n\n'+trans2 + '\n'
                         numero0=hora[0]
                         numero1=hora[1]
                         total=(total+'\n'+'⌚️'+numero0+numero1+'\n'+'📌'+hora+' ')
@@ -115,10 +153,7 @@ def timestoday(bot,update,args):
 def timesintervalo(bot,update,args):
 
     if(len(args) == 4):
-
-        #Cambiar ubicacion del JSON **************************************************
-        leer = json.loads(open('./paradas.json').read())
-        
+   
         #Valida si existe el argumento 1 (origen) y el argumento 2 (destino)
         numid = leer.get(str.lower(args[0]), 'Nothing')
         numid2 = leer.get(str.lower(args[1]), 'Nothing')
@@ -159,18 +194,17 @@ def timesintervalo(bot,update,args):
 				'calcular': '1'
                         }
                         r = requests.post("http://www.tramalicante.es/horarios.php", data=payload)
-
                         #Scrapeo cada valor de la tabla de horarios
                         cadatd = re.findall("<td>(\d+:\d+)</td>", r.text)
-
                         total=''
                         numero1='-1'
                         numero0='-1'
+                        trans=0
                         #Mando el horario de la forma: en una linea la hora y en la siguiente todas las
                         #veces que sale en esa hora, y asi con todas las horas.
-                
                         for hora in cadatd:
                             #imprime horas por grupos de hora
+                            
                             if(hora[0]==numero0 and hora[1]==numero1):
                        
                                 total=(total+hora+' ')
@@ -178,8 +212,14 @@ def timesintervalo(bot,update,args):
                             else:
                                 #Detectar transbordo
                                 if(numero0*10+numero1 > hora[0]*10+hora[1]):
-                                    total=total+'\n\nTRANSBORDOOOR\n'
-                            
+                                    trans+=1
+                                    if(trans==1):
+                                        trans1=unTransbordo(r)
+                                        total+='\n\n Transbordo'+trans1+'\n'
+                                    if(trans==2):
+                                        trans2=dosTransbordos(r)
+                                        total+='\n\n'+trans2 + '\n'
+                    
                                 numero0=hora[0]
                                 numero1=hora[1]
                                 total=(total+'\n'+'⌚️'+numero0+numero1+'\n'+'📌'+hora+' ')
@@ -201,13 +241,10 @@ def timesintervalo(bot,update,args):
 #
 #
 def paradas(bot, update):
-    
-    #cargo el json de las paradas
-    leer = json.loads(open('./paradas.json').read())
-    
+    if not leer:
+        update.message.reply_text('Error.\nNo se ha podido leer las paradas.')
     total='📌'
     for parada in leer:
-
         total=(total+parada+'\n'+'📌')
     temp=len(total)
     total=total[:temp -1] 
