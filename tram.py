@@ -254,7 +254,7 @@ def paradas(bot, update):
 # Funcion principal 		     #
 ######################################
 def main():
-    #Cambiar token***********************************************************************
+    #Cambiar token**********************************************************************
     updater = telegram.ext.Updater('TOKEN')
     dp = updater.dispatcher
 
